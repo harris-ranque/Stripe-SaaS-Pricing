@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/features/auth/api/auth.api';
@@ -21,6 +22,7 @@ export default function LoginPage() {
       setLoading(true);
       const data = await authApi.login(email, password);
       setAccessToken(data.access_token);
+      notify({ type: 'success', message: 'Logged in successfully' });
       router.push('/dashboard');
     } catch (error) {
       notify({
@@ -35,14 +37,15 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-sm space-y-4 rounded-lg border p-4">
-        <h1 className="text-2xl font-bold">Login</h1>
+        <h1 className="text-2xl font-bold">Sign in</h1>
 
         <input
           className="w-full border p-2"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          type="text"
+          type="email"
+          autoComplete="email"
         />
         <input
           className="w-full border p-2"
@@ -50,14 +53,22 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           type="password"
+          autoComplete="current-password"
         />
         <button
           className="w-full rounded bg-black p-2 text-white disabled:opacity-50"
           onClick={handleLogin}
-          disabled={loading}
+          disabled={loading || !email || !password}
         >
-          {loading ? 'Loading...' : 'Login'}
+          {loading ? 'Signing in...' : 'Sign in'}
         </button>
+
+        <p className="text-center text-sm text-zinc-600">
+          Don&apos;t have an account?{' '}
+          <Link href="/register" className="font-medium text-black underline">
+            Create one
+          </Link>
+        </p>
       </div>
     </div>
   );
