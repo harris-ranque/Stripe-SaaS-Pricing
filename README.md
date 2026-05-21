@@ -52,16 +52,18 @@ Redis
 
 ## Required Software
 
-| Tool             | Purpose                |
-| ---------------- | ---------------------- |
-| Node.js 20 LTS   | Runtime                |
-| pnpm             | Package manager        |
-| Docker Desktop   | Containers             |
-| PostgreSQL       | Database               |
-| Redis            | Cache / queue          |
-| VS Code          | IDE                    |
-| Git              | Version control        |
-| uv               | Optional Python tooling |
+
+| Tool           | Purpose                 |
+| -------------- | ----------------------- |
+| Node.js 20 LTS | Runtime                 |
+| pnpm           | Package manager         |
+| Docker Desktop | Containers              |
+| PostgreSQL     | Database                |
+| Redis          | Cache / queue           |
+| VS Code        | IDE                     |
+| Git            | Version control         |
+| uv             | Optional Python tooling |
+
 
 ### Install pnpm
 
@@ -139,7 +141,7 @@ docker compose -f infrastructure/docker/docker-compose.yml \
   --env-file infrastructure/docker/.env up -d
 ```
 
-pgAdmin is available at <http://localhost:5050>.
+pgAdmin is available at [http://localhost:5050](http://localhost:5050).
 
 ### 4. Configure environment variables
 
@@ -149,7 +151,18 @@ cp apps/web/.env.example apps/web/.env
 cp infrastructure/docker/.env.example infrastructure/docker/.env
 ```
 
-### 5. Run the apps
+### 5. Apply database migrations
+
+With Postgres running:
+
+```bash
+cd apps/api
+pnpm db:generate
+pnpm exec prisma migrate deploy
+# or for local dev with migration history: pnpm db:migrate
+```
+
+### 6. Run the apps
 
 Web (Next.js):
 

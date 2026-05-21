@@ -1,13 +1,23 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+  Get,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import {
   AuthAccessTokenResponse,
   AuthLogoutResponse,
   AuthService,
   AuthTokenResponse,
+  GoogleAuthResult,
 } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -112,5 +122,29 @@ export class AuthController {
       sameSite: 'lax',
       path: '/',
     });
+  }
+
+  // ================================
+  // Google OAuth
+  // ================================
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  googleAuth(): void {
+    // Passport handles the redirect to Google's consent screen.
+  }
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  googleAuthCallback(@Req() req: Request, @Res() res: Response): void {
+    const { tokens } = req.user as GoogleAuthResult;
+
+    this.setRefreshTokenCookie(res, tokens.refresh_token);
+
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    res.redirect(
+      `${frontendUrl}/oauth-success?access_token=${encodeURIComponent(
+        tokens.access_token,
+      )}`,
+    );
   }
 }

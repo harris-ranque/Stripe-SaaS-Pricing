@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from '@prisma/client';
+import { Role, type User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import {
   readTokenVersion,
@@ -24,6 +24,17 @@ export type AuthAccessTokenResponse = Pick<AuthTokenResponse, 'access_token'>;
 
 export type AuthLogoutResponse = {
   message: string;
+};
+
+export type GoogleProfileInput = {
+  googleId: string;
+  email: string;
+  name?: string;
+};
+
+export type GoogleAuthResult = {
+  user: User;
+  tokens: AuthTokenResponse;
 };
 
 @Injectable()
@@ -69,7 +80,7 @@ export class AuthService {
       where: { email: loginDto.email },
     });
 
-    if (!user) {
+    if (!user || !user.password) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -203,6 +214,45 @@ export class AuthService {
     } catch {
       return undefined;
     }
+  }
+
+  // ================================
+  // Google OAuth
+  // ================================
+  async validateGoogleUser(
+    profile: GoogleProfileInput,
+  ): Promise<GoogleAuthResult> {
+    let user = await this.prisma.client.user.findUnique({
+      where: { googleId: profile.googleId },
+    });
+
+    if (!user) {
+      const byEmail = await this.prisma.client.user.findUnique({
+        where: { email: profile.email },
+      });
+      if (byEmail) {
+        user = await this.prisma.client.user.update({
+          where: { id: byEmail.id },
+          data: { googleId: profile.googleId },
+        });
+      }
+    }
+
+    if (!user) {
+      user = await this.prisma.client.user.create({
+        data: {
+          email: profile.email,
+          googleId: profile.googleId,
+          name: profile.name,
+        },
+      });
+    }
+
+    const tokens = await this.generateToken(user.id, user.email, user.role);
+
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
+
+    return { user, tokens };
   }
 
   private getStoredRefreshToken(hashedRefreshToken: unknown): string {

@@ -34,10 +34,25 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+const isAuthEndpoint = (url: string | undefined): boolean => {
+  if (!url) {
+    return false;
+  }
+  return (
+    url.includes('/auth/refresh') ||
+    url.includes('/auth/login') ||
+    url.includes('/auth/register')
+  );
+};
+
 api.interceptors.response.use(
   async (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableAxiosRequestConfig | undefined;
+
+    if (isAuthEndpoint(originalRequest?.url)) {
+      return Promise.reject(error);
+    }
 
     if (
       error.response?.status === 401 &&

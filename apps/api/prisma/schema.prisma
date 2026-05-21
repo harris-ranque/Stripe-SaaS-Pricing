@@ -10,12 +10,31 @@ model User {
   id                 String   @id @default(cuid())
   email              String   @unique
   name               String?
+  googleId           String?  @unique
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
-  password           String
+  password           String?
   role               Role     @default(CUSTOMER)
   hashedRefreshToken String?
   tokenVersion       Int      @default(0)
+
+  organizationId     String?
+  organization       Organization? @relation("OrganizationMembers", fields: [organizationId], references: [id])
+
+  ownedOrganization Organization? @relation("OrganizationOwner")
+}
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logoUrl     String?
+  ownerId     String   @unique
+  owner       User     @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  members     User[]   @relation("OrganizationMembers")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 enum Role {

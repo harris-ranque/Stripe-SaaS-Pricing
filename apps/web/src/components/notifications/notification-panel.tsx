@@ -3,7 +3,7 @@
 import { CircleAlert, CircleCheck, Info, X } from 'lucide-react';
 import { useNotificationStore } from '@/features/notifications/store/notification.store';
 import type { NotificationType } from '@/features/notifications/types/notification.type';
-import { cn } from '@/lib/utils/utils';
+import { cn } from '@/lib/utils';
 
 const typeStyles: Record<NotificationType, string> = {
   error: 'border-red-200 bg-red-50 text-red-950',
