@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import Stripe from 'stripe';
 import { PrismaService } from '../../database/prisma.service';
+import { SubscriptionPlan } from './dto/create-subscription.dto';
 import { STRIPE_CLIENT } from './stripe.client';
 
 export type StripeConnectAccountResult =
@@ -25,6 +26,14 @@ type StripeEvent = ReturnType<Stripe.Stripe['webhooks']['constructEvent']>;
 type StripePaymentIntent = Extract<
   StripeEvent,
   { type: 'payment_intent.succeeded' }
+>['data']['object'];
+type StripeCheckoutSession = Extract<
+  StripeEvent,
+  { type: 'checkout.session.completed' }
+>['data']['object'];
+type StripeSubscription = Extract<
+  StripeEvent,
+  { type: 'customer.subscription.updated' }
 >['data']['object'];
 
 @Injectable()
@@ -123,6 +132,21 @@ export class StripeService {
         await this.handlePaymentIntentFailed(event.data.object);
         break;
 
+      case 'checkout.session.completed':
+        await this.handleCheckoutCompleted(event.data.object);
+
+        break;
+
+      case 'customer.subscription.updated':
+        await this.handleSubscriptionUpdated(event.data.object);
+
+        break;
+
+      case 'customer.subscription.deleted':
+        await this.handleSubscriptionDeleted(event.data.object);
+
+        break;
+
       default:
         console.log(`Unhandled event type ${event.type}`);
     }
@@ -166,6 +190,88 @@ export class StripeService {
     await this.prisma.updatePaymentStatus(payment.id, 'FAILED');
 
     console.log(`Payment ${payment.id} failed`);
+  }
+
+  // ================================
+  // Checkout Completed
+  // ================================
+  async handleCheckoutCompleted(session: StripeCheckoutSession): Promise<void> {
+    const organizationId = session.metadata?.organizationId;
+    const plan = session.metadata?.plan;
+
+    if (!organizationId) {
+      return;
+    }
+
+    const subscriptionId =
+      typeof session.subscription === 'string'
+        ? session.subscription
+        : (session.subscription?.id ?? null);
+
+    if (!subscriptionId) {
+      return;
+    }
+
+    await this.prisma.client.organization.update({
+      where: { id: organizationId },
+      data: {
+        stripeSubscriptionId: subscriptionId,
+        stripeSubscriptionStatus: 'ACTIVE',
+        stripeSubscriptionPlan: plan,
+      },
+    });
+
+    console.log(`Subscription activated for organization ${organizationId}`);
+  }
+
+  // ================================
+  // Subscription Updated
+  // ================================
+  async handleSubscriptionUpdated(
+    subscription: StripeSubscription,
+  ): Promise<void> {
+    const organization = await this.prisma.client.organization.findFirst({
+      where: { stripeSubscriptionId: subscription.id },
+      select: { id: true },
+    });
+
+    if (!organization) {
+      return;
+    }
+
+    const firstItem = subscription.items.data[0];
+    const currentPeriodEnd = firstItem
+      ? new Date(firstItem.current_period_end * 1000)
+      : null;
+
+    await this.prisma.client.organization.update({
+      where: { id: organization.id },
+      data: {
+        stripeSubscriptionStatus: subscription.status,
+        subscriptionCurrentPeriodEnd: currentPeriodEnd,
+      },
+    });
+  }
+
+  // ================================
+  // Subscription Deleted
+  // ================================
+  async handleSubscriptionDeleted(
+    subscription: StripeSubscription,
+  ): Promise<void> {
+    const organization = await this.prisma.client.organization.findFirst({
+      where: { stripeSubscriptionId: subscription.id },
+      select: { id: true },
+    });
+
+    if (!organization) {
+      return;
+    }
+
+    await this.prisma.client.organization.update({
+      where: { id: organization.id },
+      data: { stripeSubscriptionStatus: 'CANCELED' },
+    });
   }
 
   async createStripePaymentIntent(
@@ -228,5 +334,120 @@ export class StripeService {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
     };
+  }
+
+  async createStripeCustomer(organizationId: string): Promise<string> {
+    const organization = await this.prisma.client.organization.findUnique({
+      where: { id: organizationId },
+      include: {
+        owner: true,
+      },
+    });
+
+    if (!organization) {
+      throw new BadRequestException('Organization not found');
+    }
+
+    // ================================
+    // Existing Customer
+    // ================================
+    if (organization.stripeCustomerId) {
+      return organization.stripeCustomerId as string;
+    }
+
+    // ================================
+    // Create Stripe Customer
+    // ================================
+    const customer = await this.stripe.customers.create({
+      email: organization.owner.email,
+      name: organization.name,
+      metadata: {
+        organizationId: organization.id,
+      },
+    });
+
+    // ================================
+    // Save Customer ID
+    // ================================
+    await this.prisma.client.organization.update({
+      where: { id: organization.id },
+      data: { stripeCustomerId: customer.id },
+    });
+
+    return customer.id;
+  }
+
+  async createSubscriptionCheckout(
+    userId: string,
+    plan: SubscriptionPlan,
+  ): Promise<{ url: string }> {
+    // =========================
+    // FIND ORGANIZATION
+    // =========================
+    const organization = await this.prisma.client.organization.findUnique({
+      where: { ownerId: userId },
+      select: { id: true },
+    });
+
+    if (!organization) {
+      throw new BadRequestException('Organization not found');
+    }
+
+    // =========================
+    // GET STRIPE CUSTOMER
+    // =========================
+    const customerId = await this.createStripeCustomer(organization.id);
+
+    // =========================
+    // DETERMINE PRICE ID
+    // =========================
+    let priceId: string | undefined;
+
+    switch (plan) {
+      case SubscriptionPlan.STARTER:
+        priceId = this.config.get<string>('STRIPE_STARTER_PRICE_ID');
+        break;
+
+      case SubscriptionPlan.PRO:
+        priceId = this.config.get<string>('STRIPE_PRO_PRICE_ID');
+        break;
+
+      default:
+        throw new BadRequestException('Invalid plan');
+    }
+
+    if (!priceId) {
+      throw new BadRequestException(`Price ID not configured for plan ${plan}`);
+    }
+
+    // =========================
+    // CREATE CHECKOUT SESSION
+    // =========================
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${frontendUrl}/vendor/billing/success`,
+      cancel_url: `${frontendUrl}/vendor/billing`,
+      metadata: {
+        organizationId: organization.id,
+        plan,
+      },
+    });
+
+    if (!session.url) {
+      throw new BadRequestException('Checkout session missing url');
+    }
+
+    return { url: session.url };
   }
 }

@@ -43,6 +43,15 @@ model Organization {
 
   payments Payment[]
 
+  // =========================
+  // SAAS Billing
+  // =========================
+  stripeCustomerId String?
+  stripeSubscriptionId String?
+  stripeSubscriptionStatus String?
+  stripeSubscriptionPlan String?
+  subscriptionCurrentPeriodEnd DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

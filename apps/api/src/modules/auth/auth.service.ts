@@ -14,6 +14,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './types/jwt-payload.type';
+import { getLoginRateLimiter } from '../../common/security/login-rate-limit';
 
 export type AuthTokenResponse = {
   access_token: string;
@@ -76,6 +77,11 @@ export class AuthService {
   // Login
   // ================================
   async login(loginDto: LoginDto): Promise<AuthTokenResponse> {
+    try {
+      await getLoginRateLimiter().consume(loginDto.email);
+    } catch {
+      throw new UnauthorizedException('Too many login attempts');
+    }
     const user = await this.prisma.client.user.findUnique({
       where: { email: loginDto.email },
     });

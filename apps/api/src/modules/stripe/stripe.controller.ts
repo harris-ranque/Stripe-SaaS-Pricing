@@ -18,10 +18,15 @@ import {
   type StripePaymentIntentResult,
 } from './stripe.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
+import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { PrismaService } from '../../database/prisma.service';
 
 @Controller('stripe')
 export class StripeController {
-  constructor(private readonly stripeService: StripeService) {}
+  constructor(
+    private readonly stripeService: StripeService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // =========================================
   // Connect Stripe Account
@@ -54,6 +59,18 @@ export class StripeController {
     return this.stripeService.createStripePaymentIntent(
       dto.organizationId,
       dto.amount,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('subscription')
+  createSubscription(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreateSubscriptionDto,
+  ): Promise<{ url: string }> {
+    return this.stripeService.createSubscriptionCheckout(
+      req.user.sub,
+      dto.plan,
     );
   }
 }

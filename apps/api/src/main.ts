@@ -5,6 +5,9 @@ import { AppModule } from './app.module';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+
+import compression from 'compression';
 
 async function bootstrap() {
   const logger = WinstonModule.createLogger({
@@ -24,6 +27,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger, rawBody: true });
 
   app.use(cookieParser());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: false,
+    }),
+  );
+  app.use(compression());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -34,8 +43,13 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL,
+    origin: [process.env.FRONTEND_URL],
+
     credentials: true,
+
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   app.setGlobalPrefix('api');
@@ -44,4 +58,4 @@ async function bootstrap() {
   logger.log('Server is running on port 3001');
 }
 
-bootstrap();
+void bootstrap();

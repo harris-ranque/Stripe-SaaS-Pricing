@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PrismaModule } from '../../database/prisma.module';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { envValidationSchema } from '../../config/env.validation';
 
 @Module({
   imports: [
@@ -17,6 +18,10 @@ import { GoogleStrategy } from './strategies/google.strategy';
         secret: config.get('jwtSecret', { infer: true }),
         signOptions: { expiresIn: '15m' },
       }),
+    }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
     }),
   ],
   providers: [AuthService, GoogleStrategy],
