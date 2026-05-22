@@ -22,6 +22,8 @@ model User {
   organization   Organization? @relation("OrganizationMembers", fields: [organizationId], references: [id])
 
   ownedOrganization Organization? @relation("OrganizationOwner")
+
+  uploadedFiles File[]
 }
 
 model Organization {
@@ -42,14 +44,15 @@ model Organization {
   stripeOnboardingComplete Boolean @default(false)
 
   payments Payment[]
+  files    File[]
 
   // =========================
   // SAAS Billing
   // =========================
-  stripeCustomerId String?
-  stripeSubscriptionId String?
-  stripeSubscriptionStatus String?
-  stripeSubscriptionPlan String?
+  stripeCustomerId             String?
+  stripeSubscriptionId         String?
+  stripeSubscriptionStatus     String?
+  stripeSubscriptionPlan       String?
   subscriptionCurrentPeriodEnd DateTime?
 
   createdAt DateTime @default(now())
@@ -69,6 +72,23 @@ model Payment {
   updatedAt             DateTime     @updatedAt
 
   @@index([organizationId])
+}
+
+model File {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  uploadedById   String
+  uploadedBy     User         @relation(fields: [uploadedById], references: [id])
+  originalName   String
+  mimeType       String
+  size           Int
+  storageKey     String       @unique
+  publicUrl      String
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([uploadedById])
 }
 
 enum Role {

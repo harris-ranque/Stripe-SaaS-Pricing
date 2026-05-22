@@ -15,6 +15,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
 import { EmailModule } from './modules/queues/email/email.module';
 import { PaymentModule } from './modules/queues/payment/payment.module';
+import { StorageModule } from './modules/storage/storage.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { PaymentModule } from './modules/queues/payment/payment.module';
     }),
     EmailModule,
     PaymentModule,
+    StorageModule,
   ],
   // controllers: [AppController],
   providers: [

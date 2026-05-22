@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
+import type { File as StoredFile } from '@prisma/client';
 import type { AppConfig } from '../config/configuration';
 import { createPrismaPgAdapter } from './create-prisma-adapter';
 
@@ -39,5 +40,9 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       data: { status },
       select: { id: true },
     });
+  }
+
+  createFile(data: Prisma.FileUncheckedCreateInput): Promise<StoredFile> {
+    return this.client.file.create({ data });
   }
 }
