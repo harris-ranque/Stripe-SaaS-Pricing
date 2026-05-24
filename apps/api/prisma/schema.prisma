@@ -52,6 +52,7 @@ model Organization {
   payments            Payment[]
   files               File[]
   organizationMembers OrganizationMember[]
+  apiKeys             ApiKey[]
 
   // =========================
   // SAAS Billing
@@ -149,6 +150,20 @@ model OrganizationMember {
   createdAt      DateTime     @default(now())
 
   @@unique([organizationId, userId])
+}
+
+model ApiKey {
+  id             String       @id @default(uuid())
+  key            String       @unique
+  name           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  revoked        Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
 }
 
 enum Role {

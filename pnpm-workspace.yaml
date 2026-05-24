@@ -4,6 +4,7 @@ packages:
 allowBuilds:
   '@nestjs/core': false
   '@prisma/engines': true
+  '@scarf/scarf': true
   '@sentry-internal/node-cpu-profiler': true
   '@tailwindcss/oxide': true
   bcrypt: true

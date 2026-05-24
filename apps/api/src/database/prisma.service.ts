@@ -15,6 +15,17 @@ export type OrganizationWithMemberCount = OrganizationPlanRow & {
   _count: { members: number };
 };
 
+export type ApiKeyRecord = {
+  id: string;
+  key: string;
+  name: string;
+  organizationId: string;
+  lastUsedAt: Date | null;
+  expiresAt: Date | null;
+  revoked: boolean;
+  createdAt: Date;
+};
+
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
   readonly client: PrismaClient;
@@ -84,6 +95,30 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         memberLimit: true,
         _count: { select: { members: true } },
       },
+    });
+  }
+
+  findApiKey(key: string): Promise<ApiKeyRecord | null> {
+    return this.client.apiKey.findUnique({
+      where: { key },
+      select: {
+        id: true,
+        key: true,
+        name: true,
+        organizationId: true,
+        lastUsedAt: true,
+        expiresAt: true,
+        revoked: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  touchApiKey(id: string): Promise<{ id: string }> {
+    return this.client.apiKey.update({
+      where: { id },
+      data: { lastUsedAt: new Date() },
+      select: { id: true },
     });
   }
 }
