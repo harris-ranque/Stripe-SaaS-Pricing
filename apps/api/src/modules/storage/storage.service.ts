@@ -41,6 +41,11 @@ export class StorageService {
     }
 
     const extension = dto.fileName.split('.').pop() ?? 'bin';
+    const dangerousExtensions = ['exe', 'bat', 'sh', 'cmd'];
+
+    if (dangerousExtensions.includes(extension)) {
+      throw new BadRequestException('Invalid file type');
+    }
     const storageKey = `${user.organizationId}/${randomUUID()}.${extension}`;
 
     const bucket = process.env.R2_BUCKET_NAME;

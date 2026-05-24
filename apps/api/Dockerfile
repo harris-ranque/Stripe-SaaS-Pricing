@@ -41,9 +41,15 @@ ENV NODE_ENV=production
 # OpenSSL runtime for Prisma + libstdc++ for bcrypt's prebuilt binding
 RUN apk add --no-cache openssl libstdc++
 
+# Run as non-root: drop privileges for the runtime process
+RUN addgroup -S appgroup \
+ && adduser -S appuser -G appgroup
+
 # Copy installed workspace as-is so Prisma's generated `.prisma/client/*`
 # stays where Node's resolution can find it.
-COPY --from=builder /app /app
+COPY --from=builder --chown=appuser:appgroup /app /app
+
+USER appuser
 
 EXPOSE 3001
 

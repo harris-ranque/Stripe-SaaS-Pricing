@@ -42,10 +42,16 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# Run as non-root: drop privileges for the runtime process
+RUN addgroup -S appgroup \
+ && adduser -S appuser -G appgroup
+
 # Copy the whole workspace from builder. Avoids `pnpm deploy` (which respects
 # .gitignore and drops `.next/`) and avoids `pnpm start` at runtime (which
 # triggers pnpm 11's verify-deps-before-run and crashes on unapproved builds).
-COPY --from=builder /app /app
+COPY --from=builder --chown=appuser:appgroup /app /app
+
+USER appuser
 
 EXPOSE 3000
 

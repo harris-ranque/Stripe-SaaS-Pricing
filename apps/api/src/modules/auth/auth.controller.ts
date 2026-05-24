@@ -18,6 +18,7 @@ import {
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
@@ -34,6 +35,13 @@ export class AuthController {
   // ================================
   // Login
   // ================================
+  @Throttle({
+    default: {
+      ttl: 60000,
+
+      limit: 5,
+    },
+  })
   @Post('login')
   async login(
     @Body() loginDto: LoginDto,

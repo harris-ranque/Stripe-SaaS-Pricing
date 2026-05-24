@@ -26,10 +26,21 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule, { logger, rawBody: true });
 
-  app.use(cookieParser());
   app.use(
     helmet({
-      crossOriginResourcePolicy: false,
+      crossOriginEmbedderPolicy: false,
+
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+
+          scriptSrc: ["'self'"],
+
+          objectSrc: ["'none'"],
+
+          upgradeInsecureRequests: [],
+        },
+      },
     }),
   );
   app.use(compression());
@@ -37,10 +48,14 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      transform: true,
+
       forbidNonWhitelisted: true,
+
+      transform: true,
     }),
   );
+
+  app.use(cookieParser());
 
   app.enableCors({
     origin: [process.env.FRONTEND_URL],
