@@ -1,6 +1,7 @@
 import {
   Inject,
   Injectable,
+  Logger,
   BadRequestException,
   type RawBodyRequest,
 } from '@nestjs/common';
@@ -41,6 +42,8 @@ type StripeSubscription = Extract<
 
 @Injectable()
 export class StripeService {
+  private readonly logger = new Logger(StripeService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
@@ -154,7 +157,7 @@ export class StripeService {
         break;
 
       default:
-        console.log(`Unhandled event type ${event.type}`);
+        this.logger.log(`Unhandled event type ${event.type}`);
     }
 
     return { received: true };
@@ -212,7 +215,7 @@ export class StripeService {
       });
     }
 
-    console.log(`Payment ${payment.id} succeeded`);
+    this.logger.log(`Payment ${payment.id} succeeded`);
   }
 
   // ================================
@@ -231,7 +234,7 @@ export class StripeService {
 
     await this.prisma.updatePaymentStatus(payment.id, 'FAILED');
 
-    console.log(`Payment ${payment.id} failed`);
+    this.logger.log(`Payment ${payment.id} failed`);
   }
 
   // ================================
@@ -263,7 +266,9 @@ export class StripeService {
       },
     });
 
-    console.log(`Subscription activated for organization ${organizationId}`);
+    this.logger.log(
+      `Subscription activated for organization ${organizationId}`,
+    );
   }
 
   // ================================

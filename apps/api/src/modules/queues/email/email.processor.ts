@@ -1,5 +1,5 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-
+import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 export type WelcomeEmailJobData = {
@@ -9,32 +9,24 @@ export type WelcomeEmailJobData = {
 
 @Processor('email')
 export class EmailProcessor extends WorkerHost {
-  async process(job: Job<WelcomeEmailJobData>) {
+  private readonly logger = new Logger(EmailProcessor.name);
+
+  async process(job: Job<WelcomeEmailJobData>): Promise<void> {
     switch (job.name) {
       case 'send-welcome-email':
         await this.handleWelcomeEmail(job.data);
-
         break;
-
       default:
-        console.log(`Unknown job: ${job.name}`);
+        this.logger.warn(`Unknown job: ${job.name}`);
     }
   }
 
-  // =====================================
-  // HANDLE WELCOME EMAIL
-  // =====================================
-  async handleWelcomeEmail(data: WelcomeEmailJobData) {
-    console.log(`Sending welcome email to ${data.email}`);
+  async handleWelcomeEmail(data: WelcomeEmailJobData): Promise<void> {
+    this.logger.log(`Sending welcome email to ${data.email}`);
 
-    // =====================================
-    // FUTURE:
-    // SENDGRID / RESEND / SES
-    // =====================================
-
-    // simulate async work
+    // simulate async work; replace with SendGrid / Resend / SES
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    console.log(`Welcome email sent to ${data.email}`);
+    this.logger.log(`Welcome email sent to ${data.email}`);
   }
 }

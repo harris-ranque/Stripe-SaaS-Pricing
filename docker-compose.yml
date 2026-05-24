@@ -97,6 +97,30 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+  # =====================================
+  # PROMETHEUS
+  # =====================================
+  prometheus:
+    image: prom/prometheus
+
+    ports:
+      - '9090:9090'
+
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  # =====================================
+  # GRAFANA
+  # =====================================
+  grafana:
+    image: grafana/grafana
+
+    ports:
+      - '3002:3000'
+
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
 
 volumes:
   postgres_data:

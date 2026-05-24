@@ -10,8 +10,9 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { HealthModule } from './modules/health/health.module';
 import { StripeModule } from './modules/stripe/stripe.module';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { AllExceptionsFilter } from './common/filters/all-exceptions/all-exceptions.filter';
 import { BullModule } from '@nestjs/bullmq';
 import { EmailModule } from './modules/queues/email/email.module';
 import { PaymentModule } from './modules/queues/payment/payment.module';
@@ -19,6 +20,8 @@ import { StorageModule } from './modules/storage/storage.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { LoggerModule } from './common/logger/logger.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -50,12 +53,18 @@ import { AuditModule } from './modules/audit/audit.module';
     RealtimeModule,
     NotificationsModule,
     AuditModule,
+    LoggerModule,
+    MetricsModule,
   ],
   // controllers: [AppController],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
     },
   ],
 })
