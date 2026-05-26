@@ -1,13 +1,23 @@
 'use client';
 
-import { Sidebar } from '@/components/sidebar/sidebar';
+import { Sidebar } from '../navigation/sidebar';
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+import { Topbar } from '../navigation/topbar';
+
+type Props = {
+  children: React.ReactNode;
+};
+
+export function DashboardLayout({ children }: Props) {
   return (
-    <div className="flex min-h-screen">
+    <div className="bg-muted/30 flex min-h-screen">
       <Sidebar />
 
-      <main className="flex-1 p-6">{children}</main>
+      <div className="flex flex-1 flex-col">
+        <Topbar />
+
+        <main className="flex-1 p-6">{children}</main>
+      </div>
     </div>
   );
 }
