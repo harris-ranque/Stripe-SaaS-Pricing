@@ -1,6 +1,6 @@
-# Healthcare SaaS Platform
+# Enterprise SaaS Starter Kit
 
-Production-grade Healthcare SaaS platform built with:
+Production-grade SaaS platform built with:
 
 - Next.js (Frontend)
 - NestJS (Backend)
