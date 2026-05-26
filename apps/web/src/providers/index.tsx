@@ -8,6 +8,7 @@ import { setupApiInterceptors } from '@/lib/api/interceptors';
 import { AuthProvider } from './auth-provider';
 import { NotificationProvider } from './notification-provider';
 import { Toaster } from 'sonner';
+import { RealtimeProvider } from './realtime-provider';
 
 setupApiInterceptors();
 
@@ -22,7 +23,7 @@ export function Providers({ children }: Props) {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <NotificationProvider>
-          {children}
+          <RealtimeProvider>{children}</RealtimeProvider>
           <Toaster richColors />
         </NotificationProvider>
       </AuthProvider>
