@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+'use client';
+
+import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 
 import {
   Table,
@@ -9,67 +11,56 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-export type DataTableColumn<TRow> = {
-  key: keyof TRow & string;
-  header: ReactNode;
-  render?: (row: TRow) => ReactNode;
+type Props<TData> = {
+  columns: ColumnDef<TData>[];
+
+  data: TData[];
 };
 
-type Props<TRow> = {
-  columns: DataTableColumn<TRow>[];
-  data: TRow[];
-  getRowKey?: (row: TRow, index: number) => string | number;
-  emptyMessage?: ReactNode;
-};
+export function DataTable<TData>({ columns, data }: Props<TData>) {
+  const table = useReactTable({
+    data,
 
-function renderCell(value: unknown): ReactNode {
-  if (value === null || value === undefined) return null;
-  if (
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean'
-  ) {
-    return String(value);
-  }
-  if (value instanceof Date) return value.toISOString();
-  return JSON.stringify(value);
-}
+    columns,
 
-export function DataTable<TRow extends Record<string, unknown>>({
-  columns,
-  data,
-  getRowKey,
-  emptyMessage = 'No data',
-}: Props<TRow>) {
+    getCoreRowModel: getCoreRowModel(),
+  });
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {columns.map((column) => (
-            <TableHead key={column.key}>{column.header}</TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
+    <div className="rounded-lg border">
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableHead key={header.id}>
+                  {flexRender(
+                    header.column.columnDef.header,
 
-      <TableBody>
-        {data.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={columns.length} className="text-center text-muted-foreground">
-              {emptyMessage}
-            </TableCell>
-          </TableRow>
-        ) : (
-          data.map((row, index) => (
-            <TableRow key={getRowKey ? getRowKey(row, index) : index}>
-              {columns.map((column) => (
-                <TableCell key={column.key}>
-                  {column.render ? column.render(row) : renderCell(row[column.key])}
+                    header.getContext(),
+                  )}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+
+        <TableBody>
+          {table.getRowModel().rows.map((row) => (
+            <TableRow key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id}>
+                  {flexRender(
+                    cell.column.columnDef.cell,
+
+                    cell.getContext(),
+                  )}
                 </TableCell>
               ))}
             </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
